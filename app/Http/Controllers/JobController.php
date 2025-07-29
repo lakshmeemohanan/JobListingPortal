@@ -3,20 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\Job;
-use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class JobController extends Controller
 {
+    use AuthorizesRequests;
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $jobs = Job::all();
+        $jobs = Job::latest()->paginate(3);
         return view('jobs.index')->with('jobs', $jobs);
     }
 
@@ -53,7 +55,7 @@ class JobController extends Controller
             'company_logo' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:2048',
             'company_website' => 'nullable|url',
         ]);
-        $validatedData['user_id'] = 2;
+        $validatedData['user_id'] = auth()->user()->id;
 
         if ($request->hasFile('company_logo')) {
             $path = $request->file('company_logo')->store('logos', 'public');
@@ -76,6 +78,9 @@ class JobController extends Controller
      */
     public function edit(Job $job): View
     {
+        //Check if user is authorized
+        $this->authorize('update', $job);
+
         return view('jobs.edit')->with('job', $job);
     }
 
@@ -84,6 +89,9 @@ class JobController extends Controller
      */
     public function update(Request $request, Job $job)
     {
+        //Check if user is authorized
+        $this->authorize('update', $job);
+
         $validatedData = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
@@ -119,10 +127,18 @@ class JobController extends Controller
      */
     public function destroy(Job $job): RedirectResponse
     {
+        //Check if user is authorized
+        $this->authorize('delete', $job);
+
         if ($job->company_logo) {
             Storage::delete('public/logos/' . basename($job->company_logo));
         }
         $job->delete();
-        return redirect()->route('jobs.index')->with('success', 'Job deleted successfully');
+
+        // Check if the request came from the dashboard
+        if (request()->query('from') == 'dashboard') {
+            return redirect()->route('dashboard')->with('success', 'Job Listing deleted successfully!');
+        }
+        return redirect()->route('jobs.index')->with('success', 'Job Listing deleted successfully!');
     }
 }

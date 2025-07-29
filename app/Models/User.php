@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -22,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'avatar'
     ];
 
     /**
@@ -46,8 +47,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-    public function jobListing(): HasMany
+    public function jobListings(): HasMany
     {
         return $this->hasMany(JobListing::class);
+    }
+    public function bookMarkedJobs(): BelongsToMany
+    {
+        return $this->BelongsToMany(Job::class, 'job_user_bookmarks')->withTimeStamps();
     }
 }
